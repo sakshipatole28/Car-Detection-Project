@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Result — Car Detection</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}"/>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <h1>🚗 Car Detection</h1>
+      <p class="subtitle">Prediction Result</p>
+      <nav>
+        <a href="/">Upload</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/health">Health</a>
+        <a href="/docs" target="_blank">API Docs</a>
+      </nav>
+    </header>
+
+    <main>
+
+      {% if error %}
+      <!-- ── Error State ────────────────────────────────────────── -->
+      <div class="card error-card">
+        <h2>⚠️ Error</h2>
+        <p><strong>File:</strong> {{ filename }}</p>
+        <p class="error-msg">{{ error }}</p>
+        {% if "train.py" in error %}
+        <p class="hint">Run <code>python app/train.py</code> first to train the model.</p>
+        {% endif %}
+      </div>
+
+      {% else %}
+      <!-- ── Result State ───────────────────────────────────────── -->
+      <div class="card result-card {% if label == 1 %}car-found{% else %}no-car{% endif %}">
+        <div class="result-icon">{{ "🚗" if label == 1 else "❌" }}</div>
+        <h2 class="result-text">{{ result }}</h2>
+
+        <div class="result-details">
+          <div class="stat">
+            <span class="stat-label">File</span>
+            <span class="stat-value">{{ filename }}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Confidence</span>
+            <span class="stat-value confidence">{{ confidence }}%</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Label</span>
+            <span class="stat-value">{{ label }} ({{ "Car" if label == 1 else "No Car" }})</span>
+          </div>
+        </div>
+
+        <!-- Confidence bar -->
+        <div class="confidence-bar-wrap">
+          <div class="confidence-bar" style="width: {{ confidence }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="actions">
+        <a href="/" class="btn-primary">← Upload Another</a>
+        <a href="/dashboard" class="btn-secondary">View Dashboard</a>
+      </div>
+
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+venv/
+__pycache__/
+mlruns/
+*.pyc
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+exp11/
+.venv/
+
+# Uploaded/generated files
+app/uploads/
+
+# Model files
+*.pkl
+*.h5
+*.pt
+*.pth
+
+# Dataset files
+CarData/TestImages/
+CarData/TestImages_Scale/
+CarData/TrainImages/
+
+# MLflow
+mlruns/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env

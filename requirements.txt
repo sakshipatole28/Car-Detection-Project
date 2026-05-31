@@ -1,0 +1,24 @@
+# Car Detection Project — Experiment 11
+# Install with: pip install -r requirements.txt --break-system-packages
+# (or inside the exp11 venv: pip install -r requirements.txt)
+
+fastapi
+uvicorn[standard]
+python-multipart
+jinja2
+aiofiles
+
+pycaret[full]
+scikit-learn
+scikit-image
+opencv-python-headless
+pandas
+numpy
+
+bentoml
+mlflow
+dvc
+
+sqlalchemy
+
+Pillow

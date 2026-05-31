@@ -1,0 +1,40 @@
+# bentofile.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# BentoML packaging configuration for the Car Detection service.
+#
+# Build the Bento with:
+#   bentoml build
+#
+# Serve directly (without building):
+#   bentoml serve app/service.py:svc --reload --port 3000
+#
+# After building — containerize:
+#   bentoml containerize car_detector:latest
+# ─────────────────────────────────────────────────────────────────────────────
+
+service: "app/service.py:svc"
+
+labels:
+  owner  : student
+  project: car-detection
+  course : UAMPC0633-Exp11
+
+description: |
+  Car Detection ML Service
+  Trained on UIUC Car Detection Dataset using PyCaret AutoML.
+  Input: image file | Output: JSON prediction with confidence score.
+
+include:
+  - "app/service.py"
+  - "app/predict.py"
+  - "app/__init__.py"
+
+python:
+  packages:
+    - opencv-python-headless
+    - scikit-image
+    - scikit-learn
+    - pycaret
+    - pandas
+    - numpy
+    - Pillow

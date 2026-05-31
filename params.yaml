@@ -1,0 +1,17 @@
+# params.yaml — DVC Parameters
+# ─────────────────────────────────────────────────────────────────────────────
+# Change any value here and run `dvc repro` to retrain automatically.
+# DVC tracks these and only re-runs stages when params change.
+# ─────────────────────────────────────────────────────────────────────────────
+
+train:
+  models: "lr,dt,rf"    # PyCaret model IDs to compare
+  folds: 3              # Cross-validation folds
+  session_id: 42        # Random seed for reproducibility
+
+features:
+  img_width: 64         # Resize width before HOG extraction
+  img_height: 32        # Resize height before HOG extraction
+  orientations: 9       # HOG orientations
+  pixels_per_cell: 8    # HOG pixels per cell
+  cells_per_block: 2    # HOG cells per block

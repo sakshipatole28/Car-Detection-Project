@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Car Detection</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}"/>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <h1>🚗 Car Detection</h1>
+      <p class="subtitle">Prediction Dashboard</p>
+      <nav>
+        <a href="/">Upload</a>
+        <a href="/dashboard" class="active">Dashboard</a>
+        <a href="/health">Health</a>
+        <a href="/docs" target="_blank">API Docs</a>
+      </nav>
+    </header>
+
+    <main>
+
+      <!-- ── Summary Stats ───────────────────────────────────────── -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-num">{{ total }}</span>
+          <span class="stat-lbl">Total Predictions</span>
+        </div>
+        <div class="stat-box car">
+          <span class="stat-num">{{ cars }}</span>
+          <span class="stat-lbl">Cars Detected</span>
+        </div>
+        <div class="stat-box nocar">
+          <span class="stat-num">{{ non_cars }}</span>
+          <span class="stat-lbl">No Car</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num">
+            {% if total > 0 %}
+              {{ "%.1f"|format(cars / total * 100) }}%
+            {% else %}
+              —
+            {% endif %}
+          </span>
+          <span class="stat-lbl">Car Detection Rate</span>
+        </div>
+      </div>
+
+      <!-- ── Prediction History Table ────────────────────────────── -->
+      <div class="card">
+        <h2>Recent Predictions <small>(last 50)</small></h2>
+
+        {% if predictions %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Filename</th>
+                <th>Result</th>
+                <th>Confidence</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in predictions %}
+              <tr class="{{ 'row-car' if p.result == 'Car Detected' else 'row-nocar' }}">
+                <td>{{ p.id }}</td>
+                <td>{{ p.filename }}</td>
+                <td>
+                  <span class="badge {{ 'badge-car' if p.result == 'Car Detected' else 'badge-nocar' }}">
+                    {{ p.result }}
+                  </span>
+                </td>
+                <td>{{ "%.1f"|format(p.confidence) }}%</td>
+                <td>{{ p.timestamp.strftime('%Y-%m-%d %H:%M:%S') if p.timestamp else '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% else %}
+        <p class="empty-msg">No predictions yet. <a href="/">Upload an image</a> to get started.</p>
+        {% endif %}
+      </div>
+
+    </main>
+  </div>
+</body>
+</html>

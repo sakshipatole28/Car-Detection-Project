@@ -1,0 +1,38 @@
+# dvc.yaml — DVC Pipeline for Car Detection Project
+# ─────────────────────────────────────────────────────────────────────────────
+# This defines the reproducible ML pipeline.
+# Run with: dvc repro
+# ─────────────────────────────────────────────────────────────────────────────
+
+stages:
+
+  # Stage 1: Train the model
+  train:
+    cmd: python app/train.py
+    deps:
+      - app/train.py
+      - CarData/TrainImages
+    outs:
+      - app/model/car_model.pkl
+    params:
+      - params.yaml:
+          - train.models
+          - train.folds
+          - train.session_id
+          - features.img_width
+          - features.img_height
+
+  # Stage 2: Evaluate on test set
+  evaluate:
+    cmd: python app/evaluate.py
+    deps:
+      - app/evaluate.py
+      - app/predict.py
+      - app/model/car_model.pkl
+      - CarData/TestImages
+      - CarData/trueLocations.txt
+    metrics:
+      - metrics.json:
+          cache: false
+    outs:
+      - CarData/foundLocations.txt

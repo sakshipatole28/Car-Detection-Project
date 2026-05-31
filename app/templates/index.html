@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Car Detection — Exp 11</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}"/>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <h1>🚗 Car Detection</h1>
+      <p class="subtitle">UIUC Dataset · AutoML · BentoML · MLflow · DVC</p>
+      <nav>
+        <a href="/">Upload</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/health">Health</a>
+        <a href="/docs" target="_blank">API Docs</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="card">
+        <h2>Upload an Image</h2>
+        <p>Supported formats: <strong>.pgm, .png, .jpg, .jpeg</strong></p>
+        <p>Model detects whether the image contains a <strong>car</strong>.</p>
+
+        <form action="/predict" method="post" enctype="multipart/form-data">
+          <div class="upload-area">
+            <input type="file" name="file" id="file-input"
+                   accept=".pgm,.png,.jpg,.jpeg" required/>
+            <label for="file-input" class="upload-label">
+              📁 Choose Image File
+            </label>
+            <span id="file-name">No file chosen</span>
+          </div>
+          <button type="submit" class="btn-primary">Predict →</button>
+        </form>
+      </div>
+
+      <div class="card info-card">
+        <h3>How It Works</h3>
+        <ol>
+          <li><strong>AutoML</strong> — PyCaret trains LR, DT, RF on HOG features</li>
+          <li><strong>BentoML</strong> — packages and serves the model as a REST API</li>
+          <li><strong>MLflow</strong> — tracks experiments, metrics, and model versions</li>
+          <li><strong>DVC</strong> — versions the dataset and pipeline for reproducibility</li>
+        </ol>
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    document.getElementById("file-input").addEventListener("change", function() {
+      const name = this.files[0] ? this.files[0].name : "No file chosen";
+      document.getElementById("file-name").textContent = name;
+    });
+  </script>
+</body>
+</html>
