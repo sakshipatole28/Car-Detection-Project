@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}About · Car Detector{% endblock %}
+{% block content %}
+<article class="prose panel">
+  <h1>Problem statement</h1>
+  <p>A city traffic team wants to count cars automatically, both in footage from fixed roadside cameras
+    (grayscale, side-on) and in photos staff upload from phones, where cars appear from any angle.
+    They can't use a GPU, and every result has to be explainable and checkable.</p>
+  <p><strong>Task:</strong> given an image, return a bounding box for every car, whatever its viewing angle.
+    The system must run on a CPU and be scored on public benchmarks: the <em>UIUC Image Database for Car
+    Detection</em> with its official protocol, and the held-out test split of <em>Stanford Cars</em>.</p>
+
+  <h2>Two models</h2>
+  <p>The app serves two detectors, and you can switch between them on the Detect page.</p>
+  <ul>
+    <li><strong>Any angle · CNN</strong> (default): an SSDlite MobileNetV3 detector pretrained on COCO,
+      then fine-tuned on a CPU with three kinds of training image:
+      <ul>
+        <li>Stanford Cars photos (12,949 training images, every angle);</li>
+        <li>2×2 mosaics of those photos, so it also learns small and multiple cars;</li>
+        <li>synthetic grayscale street scenes built from the UIUC patches, some of them with no car at all.</li>
+      </ul>
+      The pretrained model is measured <em>before</em> fine-tuning, so the gain is shown rather than assumed.</li>
+    <li><strong>Side view · HOG</strong>: the classical baseline, which only recognises side views. It uses
+      HOG features with calibrated logistic regression, a sliding window over 9 scales, and non-maximum suppression.</li>
+  </ul>
+
+  <h2>Doing it properly</h2>
+  <ol>
+    <li><strong>No leakage:</strong> data is split before augmentation, and cross-validation is grouped so an
+      image and its flip always fall in the same fold. Every threshold is chosen on validation data, never on test data.</li>
+    <li><strong>No train/serve skew:</strong> HOG features are computed identically for training patches and for
+      live sliding windows, and a unit test checks this. The CNN's training data is grayscale, so every input
+      is converted to grayscale at inference too.</li>
+    <li><strong>Hard-negative mining (HOG):</strong> background windows the first model mistakes for cars become
+      extra negatives.</li>
+    <li><strong>A faithful metric:</strong> a Python port of the official UIUC Java evaluator, checked in CI
+      to give identical results for both models.</li>
+  </ol>
+
+  <h2>MLOps</h2>
+  <ul>
+    <li><strong>DVC</strong> runs four pipeline stages (<code>train</code>, <code>evaluate</code>,
+      <code>train_cnn</code>, <code>evaluate_cnn</code>), with every setting in <code>params.yaml</code>.
+      It also versions the 930&nbsp;MB Stanford archive outside git.</li>
+    <li><strong>MLflow</strong> records parameters, loss curves, cross-validation, validation and test metrics,
+      and plots, and registers both models.</li>
+    <li><strong>FastAPI</strong> serves this web interface, a REST API (<code>?model=cnn|hog</code>) and the request history.</li>
+    <li><strong>BentoML</strong> packages both models as a separate, containerised inference service.</li>
+    <li><strong>GitHub Actions</strong> runs linting and tests, retrains HOG, re-evaluates the CNN, enforces
+      quality gates, checks against the Java evaluator, smoke-tests Docker, then publishes the image to GHCR.</li>
+  </ul>
+
+  <h2>Limitations</h2>
+  <ul>
+    <li>Each Stanford training photo shows one large car. Crowded scenes with many small or heavily
+      occluded cars are harder; the mosaics and synthetic scenes only partly cover them.</li>
+    <li>The CNN was fine-tuned for only a few hundred iterations on a laptop CPU. A GPU and more
+      training time would improve it further.</li>
+    <li>The HOG baseline only recognises side views, by design.</li>
+  </ul>
+</article>
+{% endblock %}
