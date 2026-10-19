@@ -1,0 +1,84 @@
+{
+  "hog": {
+    "stanford_test": {
+      "ap50": 0.0191,
+      "threshold": 0.5,
+      "precision": 0.1461,
+      "recall": 0.0325,
+      "f1": 0.0532
+    },
+    "uiuc": {
+      "single": {
+        "precision": 0.9898,
+        "recall": 0.97,
+        "f1": 0.9798,
+        "average_precision": 0.984,
+        "latency_ms_mean": 95.8,
+        "eer_recall": 0.975
+      },
+      "scale": {
+        "precision": 0.9448,
+        "recall": 0.9856,
+        "f1": 0.9648,
+        "average_precision": 0.9707,
+        "latency_ms_mean": 1041.7,
+        "eer_recall": 0.964
+      }
+    }
+  },
+  "ssdlite_coco_pretrained": {
+    "stanford_test": {
+      "ap50": 0.8774,
+      "threshold": 0.404,
+      "precision": 0.7564,
+      "recall": 0.885,
+      "f1": 0.8157
+    },
+    "uiuc": {
+      "single": {
+        "precision": 0.8263,
+        "recall": 0.975,
+        "f1": 0.8945,
+        "average_precision": 0.9735,
+        "latency_ms_mean": 90.4,
+        "eer_recall": 0.925
+      },
+      "scale": {
+        "precision": 0.879,
+        "recall": 0.9928,
+        "f1": 0.9324,
+        "average_precision": 0.9856,
+        "latency_ms_mean": 92.3,
+        "eer_recall": 0.964
+      }
+    }
+  },
+  "ssdlite_fine_tuned": {
+    "stanford_test": {
+      "ap50": 0.9952,
+      "threshold": 0.839,
+      "precision": 0.9876,
+      "recall": 0.9975,
+      "f1": 0.9925
+    },
+    "uiuc": {
+      "single": {
+        "precision": 0.9943,
+        "recall": 0.865,
+        "f1": 0.9251,
+        "average_precision": 0.9936,
+        "latency_ms_mean": 84.3,
+        "eer_recall": 0.96
+      },
+      "scale": {
+        "precision": 0.9692,
+        "recall": 0.9065,
+        "f1": 0.9368,
+        "average_precision": 0.9871,
+        "latency_ms_mean": 82.9,
+        "eer_recall": 0.9712
+      }
+    }
+  },
+  "_note": "Stanford: 400 random test images (seed 0); UIUC: full official test sets. Thresholds chosen on validation data."
+}

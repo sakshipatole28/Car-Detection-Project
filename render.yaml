@@ -1,0 +1,12 @@
+# One-click deploy on Render (https://render.com/docs/blueprint-spec): New > Blueprint > this repo.
+services:
+  - type: web
+    name: car-detector
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: CARDET_DB_URL
+        value: sqlite:////tmp/cardet.db

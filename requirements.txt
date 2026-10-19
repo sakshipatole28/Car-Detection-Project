@@ -1,24 +1,16 @@
-# Car Detection Project — Experiment 11
-# Install with: pip install -r requirements.txt --break-system-packages
-# (or inside the exp11 venv: pip install -r requirements.txt)
-
-fastapi
-uvicorn[standard]
-python-multipart
-jinja2
-aiofiles
-
-pycaret[full]
-scikit-learn
-scikit-image
-opencv-python-headless
-pandas
-numpy
-
-bentoml
-mlflow
-dvc
-
-sqlalchemy
-
-Pillow
+# Runtime dependencies for the FastAPI service (installed in the Docker image).
+# scikit-learn is pinned exactly: the HOG model is a pickled sklearn object.
+# PyTorch comes from the CPU-only index (no 2 GB CUDA libraries).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+numpy==2.2.6
+opencv-python-headless==4.14.0.94   # 5.x removed cv2.HOGDescriptor
+scikit-learn==1.9.1
+joblib==1.6.0
+pyyaml==6.0.3
+fastapi==0.143.3
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
+jinja2==3.1.6
+sqlalchemy==2.1.4

@@ -1,17 +1,74 @@
-# params.yaml — DVC Parameters
-# ─────────────────────────────────────────────────────────────────────────────
-# Change any value here and run `dvc repro` to retrain automatically.
-# DVC tracks these and only re-runs stages when params change.
-# ─────────────────────────────────────────────────────────────────────────────
+# params.yaml — single source of truth for the pipeline.
+# DVC tracks these values: change one and `dvc repro` re-runs only the affected stages.
+
+data:
+  train_dir: CarData/TrainImages
+  test_dir: CarData/TestImages
+  test_scale_dir: CarData/TestImages_Scale
+  true_locations: CarData/trueLocations.txt
+  true_locations_scale: CarData/trueLocations_Scale.txt
+  val_size: 0.2          # stratified hold-out split of the training patches
+  seed: 42
+
+features:                # OpenCV HOG on the native 100x40 UIUC window
+  win_width: 100
+  win_height: 40
+  block_size: 20
+  block_stride: 10
+  cell_size: 10
+  nbins: 9
+
+augment:
+  hflip: true            # cars face both directions; flips are added AFTER the split
+
+hard_negative_mining:
+  rounds: 1              # 0 disables mining
+  scales: [1.5, 2.0, 2.5, 3.0]
+  stride: 8
+  max_new: 3000          # cap on mined negatives per round
 
 train:
-  models: "lr,dt,rf"    # PyCaret model IDs to compare
-  folds: 3              # Cross-validation folds
-  session_id: 42        # Random seed for reproducibility
+  cv_folds: 5
+  selection_metric: average_precision
+  candidates:            # model families searched with grouped CV
+    logreg:
+      C: [0.01, 0.1, 1.0]
+    linear_svm:
+      C: [0.001, 0.01, 0.1]
+    random_forest:
+      n_estimators: [300]
+      max_depth: [null, 20]
+  refit_full: true       # refit the selected model on train+val before export
 
-features:
-  img_width: 64         # Resize width before HOG extraction
-  img_height: 32        # Resize height before HOG extraction
-  orientations: 9       # HOG orientations
-  pixels_per_cell: 8    # HOG pixels per cell
-  cells_per_block: 2    # HOG cells per block
+detect:
+  stride: 4              # sliding-window step in pixels
+  threshold: 0.5         # min calibrated car probability
+  nms_iou: 0.2
+  scales: [0.8, 0.92, 1.06, 1.22, 1.4, 1.61, 1.85, 2.13, 2.45]  # window width / 100
+  max_side: 640          # uploads larger than this are downscaled first
+
+quality_gate:            # CI fails if the exported model is worse than this
+  min_test_f1: 0.80
+  min_val_roc_auc: 0.97
+  cnn_min_uiuc_f1: 0.80        # CNN must not forget the street-scene benchmark
+  cnn_min_stanford_ap50: 0.90  # ...and must work on cars from every angle
+
+cnn:                     # any-angle detector: SSDlite fine-tuned on Stanford Cars + UIUC scenes
+  zip: CarData/cardata.zip
+  iters: 600
+  max_minutes: 150       # wall-clock cap for this CPU-only machine; LR anneals to it
+  batch_size: 8
+  lr: 0.004
+  weight_decay: 0.00004
+  warmup_iters: 100
+  workers: 1
+  threads: 2             # = physical cores; more threads oversubscribe the CPU
+  val_images: 400        # Stanford validation subset (selection + threshold)
+  val_scenes: 200        # synthetic street scenes from held-out UIUC patches
+  test_images: 0         # 0 = full Stanford test split
+  gray_prob: 0.3
+  uiuc_empty_prob: 0.3
+  mix:
+    stanford: 0.5
+    mosaic: 0.3
+    uiuc: 0.2

@@ -1,0 +1,11 @@
+# Runtime dependencies for the BentoML service image (see bentofile.yaml).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+numpy==2.2.6
+opencv-python-headless==4.14.0.94
+scikit-learn==1.9.1
+joblib==1.6.0
+pyyaml==6.0.3
+pillow==12.3.0
+bentoml==1.4.39

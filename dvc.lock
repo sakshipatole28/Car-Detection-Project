@@ -1,0 +1,285 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python -m cardet.train
+    deps:
+    - path: CarData/TrainImages
+      hash: md5
+      md5: 88df393e55c13a5f445513dcbfc4cc20.dir
+      size: 4214700
+      nfiles: 1050
+    - path: cardet/config.py
+      hash: md5
+      md5: e78461d4f0279b99705d32d6b7418dbb
+      size: 1363
+    - path: cardet/data.py
+      hash: md5
+      md5: 34bd0f56fd212ea94fecbd366088fda3
+      size: 2123
+    - path: cardet/detector.py
+      hash: md5
+      md5: cae8893dc65b439204a07d20e9759423
+      size: 5702
+    - path: cardet/features.py
+      hash: md5
+      md5: 03e22cc4a619e63354dbc08924e8cdfa
+      size: 4571
+    - path: cardet/train.py
+      hash: md5
+      md5: 4b391cacb81a603f18bb174ac2e8beea
+      size: 13435
+    params:
+      params.yaml:
+        augment:
+          hflip: true
+        data.seed: 42
+        data.val_size: 0.2
+        detect:
+          stride: 4
+          threshold: 0.5
+          nms_iou: 0.2
+          scales:
+          - 0.8
+          - 0.92
+          - 1.06
+          - 1.22
+          - 1.4
+          - 1.61
+          - 1.85
+          - 2.13
+          - 2.45
+          max_side: 640
+        features:
+          win_width: 100
+          win_height: 40
+          block_size: 20
+          block_stride: 10
+          cell_size: 10
+          nbins: 9
+        hard_negative_mining:
+          rounds: 1
+          scales:
+          - 1.5
+          - 2.0
+          - 2.5
+          - 3.0
+          stride: 8
+          max_new: 3000
+        train:
+          cv_folds: 5
+          selection_metric: average_precision
+          candidates:
+            logreg:
+              C:
+              - 0.01
+              - 0.1
+              - 1.0
+            linear_svm:
+              C:
+              - 0.001
+              - 0.01
+              - 0.1
+            random_forest:
+              n_estimators:
+              - 300
+              max_depth:
+              - 
+              - 20
+          refit_full: true
+    outs:
+    - path: models/car_detector.joblib
+      hash: md5
+      md5: 83afcba300dea97c31ce573da5d981fd
+      size: 175998
+    - path: reports/train_metrics.json
+      hash: md5
+      md5: 8d73d1dcb4f8779ea504a4e94a864a4b
+      size: 234
+    - path: reports/validation.png
+      hash: md5
+      md5: 68fb2c689b40b1bfb811f0a648e70466
+      size: 57742
+  evaluate:
+    cmd: python -m cardet.evaluate --gate
+    deps:
+    - path: CarData/TestImages
+      hash: md5
+      md5: fd08b0927807076aeefc3cdcb9fdf102.dir
+      size: 3977815
+      nfiles: 170
+    - path: CarData/TestImages_Scale
+      hash: md5
+      md5: c16ce9d2387cfd3bc36febd1e2aff7bf.dir
+      size: 4960556
+      nfiles: 108
+    - path: CarData/trueLocations.txt
+      hash: md5
+      md5: 4b83e62e6fa7256c618cc4fd87c71439
+      size: 2354
+    - path: CarData/trueLocations_Scale.txt
+      hash: md5
+      md5: 093e6d1b87fbd8dbb0a348bf1af397db
+      size: 2138
+    - path: cardet/evaluate.py
+      hash: md5
+      md5: 66dfea4f9d74e46b4d0123bc4602eb72
+      size: 10322
+    - path: cardet/metrics.py
+      hash: md5
+      md5: 7c20ad46dbce419096f1532783efdc36
+      size: 4165
+    - path: models/car_detector.joblib
+      hash: md5
+      md5: 83afcba300dea97c31ce573da5d981fd
+      size: 175998
+    params:
+      params.yaml:
+        quality_gate:
+          min_test_f1: 0.8
+          min_val_roc_auc: 0.97
+          cnn_min_uiuc_f1: 0.8
+          cnn_min_stanford_ap50: 0.9
+    outs:
+    - path: reports/examples
+      hash: md5
+      md5: 659a084d7cee42ddf842b88e497f8a0c.dir
+      size: 578081
+      nfiles: 12
+    - path: reports/foundLocations.txt
+      hash: md5
+      md5: 7b5f20f22ed55b67627666bef87657fa
+      size: 2310
+    - path: reports/foundLocations_Scale.txt
+      hash: md5
+      md5: 5c7e9435c20fbc068b6930a7f013606f
+      size: 2189
+    - path: reports/metrics.json
+      hash: md5
+      md5: 46f8d3407bc1737c27755c04746ae02f
+      size: 1267
+    - path: reports/pr_curve.png
+      hash: md5
+      md5: b0d6a6f49d205303ade7330c96ac6e90
+      size: 30748
+  train_cnn:
+    cmd: python -m cardet.train_cnn
+    deps:
+    - path: CarData/TrainImages
+      hash: md5
+      md5: 88df393e55c13a5f445513dcbfc4cc20.dir
+      size: 4214700
+      nfiles: 1050
+    - path: CarData/cardata.zip
+      hash: md5
+      md5: d7025ad07804a473e9d654553bc80019
+      size: 929394530
+    - path: cardet/cnn.py
+      hash: md5
+      md5: d2306e9ff2dba2b7a8610eeb23f3b0e7
+      size: 4614
+    - path: cardet/cnn_data.py
+      hash: md5
+      md5: 67dd65d67a62f37004da657e090f7b54
+      size: 6742
+    - path: cardet/train_cnn.py
+      hash: md5
+      md5: c972574887eb33a11d8010fe1af86456
+      size: 14659
+    params:
+      params.yaml:
+        cnn:
+          zip: CarData/cardata.zip
+          iters: 600
+          max_minutes: 150
+          batch_size: 8
+          lr: 0.004
+          weight_decay: 4e-05
+          warmup_iters: 100
+          workers: 1
+          threads: 2
+          val_images: 400
+          val_scenes: 200
+          test_images: 0
+          gray_prob: 0.3
+          uiuc_empty_prob: 0.3
+          mix:
+            stanford: 0.5
+            mosaic: 0.3
+            uiuc: 0.2
+        data.seed: 42
+    outs:
+    - path: models/cnn_detector.pt
+      hash: md5
+      md5: cda50bb09f276f86203e21ca992b1732
+      size: 7094705
+    - path: reports/cnn_train_metrics.json
+      hash: md5
+      md5: 105cdfebbbd57d1cf17d3061d51ace7e
+      size: 1235
+  evaluate_cnn:
+    cmd: python -m cardet.evaluate --model cnn --gate
+    deps:
+    - path: CarData/TestImages
+      hash: md5
+      md5: fd08b0927807076aeefc3cdcb9fdf102.dir
+      size: 3977815
+      nfiles: 170
+    - path: CarData/TestImages_Scale
+      hash: md5
+      md5: c16ce9d2387cfd3bc36febd1e2aff7bf.dir
+      size: 4960556
+      nfiles: 108
+    - path: CarData/cardata.zip
+      hash: md5
+      md5: d7025ad07804a473e9d654553bc80019
+      size: 929394530
+    - path: CarData/trueLocations.txt
+      hash: md5
+      md5: 4b83e62e6fa7256c618cc4fd87c71439
+      size: 2354
+    - path: CarData/trueLocations_Scale.txt
+      hash: md5
+      md5: 093e6d1b87fbd8dbb0a348bf1af397db
+      size: 2138
+    - path: cardet/evaluate.py
+      hash: md5
+      md5: 66dfea4f9d74e46b4d0123bc4602eb72
+      size: 10322
+    - path: cardet/metrics.py
+      hash: md5
+      md5: 7c20ad46dbce419096f1532783efdc36
+      size: 4165
+    - path: models/cnn_detector.pt
+      hash: md5
+      md5: cda50bb09f276f86203e21ca992b1732
+      size: 7094705
+    params:
+      params.yaml:
+        cnn.test_images: 0
+        quality_gate:
+          min_test_f1: 0.8
+          min_val_roc_auc: 0.97
+          cnn_min_uiuc_f1: 0.8
+          cnn_min_stanford_ap50: 0.9
+    outs:
+    - path: reports/cnn/examples
+      hash: md5
+      md5: 7a58486497262cef22aca0ebcdef40e6.dir
+      size: 578089
+      nfiles: 12
+    - path: reports/cnn/foundLocations.txt
+      hash: md5
+      md5: 7f331ece2db2fe7d0ea654ceff0267ab
+      size: 2144
+    - path: reports/cnn/foundLocations_Scale.txt
+      hash: md5
+      md5: a61fc1b22b6151b67bd5877e28051d1e
+      size: 2022
+    - path: reports/cnn/metrics.json
+      hash: md5
+      md5: 52a3170f1a5d4eee8bf2ddeff34fe4c7
+      size: 2666
+    - path: reports/cnn/pr_curve.png
+      hash: md5
+      md5: 5c160508c6e9a5fc861aa04f14041c29
+      size: 32215

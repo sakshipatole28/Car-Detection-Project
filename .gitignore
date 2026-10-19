@@ -1,48 +1,39 @@
-venv/
-__pycache__/
-mlruns/
-*.pyc
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
 
-# Virtual environments
+# Environments
+.venv/
 venv/
 env/
 exp11/
-.venv/
+.env
 
-# Uploaded/generated files
-app/uploads/
-
-# Model files
-*.pkl
-*.h5
-*.pt
-*.pth
-
-# Dataset files
-CarData/TestImages/
-CarData/TestImages_Scale/
-CarData/TrainImages/
-
-# MLflow
+# Runtime / experiment state (recreated by `make train` / `make serve`)
+var/
+mlflow.db
 mlruns/
-
-# Logs
+mlartifacts/
 *.log
+app/uploads/
+app/model/
 
-# OS files
+# Legacy artifacts from the PyCaret prototype
+*.pkl
+catboost_info/
+
+# Java evaluator output
+break-up*.txt
+
+# OS / IDE
 .DS_Store
 Thumbs.db
-
-# IDE files
 .vscode/
 .idea/
-
-# Jupyter
 .ipynb_checkpoints/
 
-# Environment variables
-.env
+# Large dataset archive: versioned by DVC (CarData/cardata.zip.dvc), not git
+CarData/*.zip

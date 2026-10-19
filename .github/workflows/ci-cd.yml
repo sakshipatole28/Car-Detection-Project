@@ -1,0 +1,155 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  IMAGE: ghcr.io/${{ github.repository_owner }}/car-detector
+
+jobs:
+  lint-test:
+    name: Lint & unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest
+
+  pipeline:
+    name: Retrain, evaluate & quality gate
+    needs: lint-test
+    runs-on: ubuntu-latest
+    env:
+      MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: pip install -r requirements-dev.txt
+      # The CNN is trained on the 930 MB Stanford archive, which is versioned by DVC
+      # (CarData/cardata.zip.dvc) rather than git. CI therefore retrains the HOG model
+      # from scratch and re-evaluates the committed CNN on the UIUC benchmark.
+      - name: Reproduce HOG pipeline (train -> evaluate --gate)
+        run: dvc repro --force train evaluate
+      - name: Evaluate committed CNN on UIUC + quality gate
+        run: python -m cardet.evaluate --model cnn --gate --no-mlflow
+      - name: Cross-check metrics with the official Java evaluator
+        run: |
+          python scripts/check_java_evaluator.py
+          python scripts/check_java_evaluator.py reports/cnn
+      - name: Metrics vs. committed version
+        run: |
+          {
+            echo "## Detection metrics (vs. HEAD)"
+            echo
+            dvc metrics diff HEAD --md
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reports-and-model
+          path: |
+            reports/
+            models/car_detector.joblib
+            mlflow.db
+
+  docker:
+    name: Docker build & smoke test
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: car-detector:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test
+        run: |
+          docker run -d --name api -p 8000:8000 car-detector:ci
+          for i in $(seq 1 30); do curl -sf localhost:8000/health && break; sleep 1; done
+          for model in cnn hog; do
+            count=$(curl -sf -F file=@CarData/TestImages/test-1.pgm "localhost:8000/api/v1/detect?model=$model" | jq .count)
+            echo "$model: cars detected in test-1: $count"
+            test "$count" = "2"
+          done
+          count=$(curl -sf -F file=@app/static/samples/angle-4-front.jpg "localhost:8000/api/v1/detect?model=cnn" | jq .count)
+          echo "cnn: cars detected in front-view photo: $count"
+          test "$count" -ge 1
+      - if: failure()
+        run: docker logs api
+
+  bento:
+    name: Build Bento
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m cardet.bento_export && bentoml build
+        env:
+          BENTOML_DO_NOT_TRACK: "true"
+      - run: bentoml export car_detector_service:latest "$PWD/car_detector_service.bento"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bento
+          path: car_detector_service.bento
+
+  publish:
+    name: Publish image & deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [pipeline, docker, bento]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+      - name: Trigger Render deploy (optional)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        if: env.HOOK != ''
+        run: curl -fsS -X POST "$HOOK"

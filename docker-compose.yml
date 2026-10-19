@@ -1,0 +1,21 @@
+# Local stack:  docker compose up --build
+#   http://localhost:8000  web app + API
+#   http://localhost:5000  MLflow UI (reads ./mlflow.db created by `make train`)
+services:
+  api:
+    build: .
+    image: car-detector:local
+    ports: ["8000:8000"]
+    volumes: ["detections:/data"]
+    restart: unless-stopped
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.17.1
+    command: mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////mlflow/mlflow.db --default-artifact-root /mlflow/mlartifacts
+    working_dir: /mlflow
+    ports: ["5000:5000"]
+    volumes: ["./:/mlflow"]
+    profiles: ["mlflow"]
+
+volumes:
+  detections:

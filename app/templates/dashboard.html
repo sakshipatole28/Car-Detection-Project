@@ -1,93 +1,127 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard — Car Detection</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}"/>
-</head>
-<body>
-  <div class="container">
+{% extends "base.html" %}
+{% block title %}Dashboard · Car Detector{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Dashboard</h1>
+  <p class="muted">How both models scored on held-out test sets, plus usage of this deployment.</p>
+</section>
 
-    <header>
-      <h1>🚗 Car Detection</h1>
-      <p class="subtitle">Prediction Dashboard</p>
-      <nav>
-        <a href="/">Upload</a>
-        <a href="/dashboard" class="active">Dashboard</a>
-        <a href="/health">Health</a>
-        <a href="/docs" target="_blank">API Docs</a>
-      </nav>
-    </header>
+{% if cnn_metrics %}
+<h2 class="section-title">Any-angle CNN · held-out test sets</h2>
+<div class="cards">
+  {% set st = cnn_metrics.stanford_test %}
+  {% if st %}
+  <article class="panel metric-card">
+    <h3>Stanford Cars test · {{ st.n_gt }} cars, every angle</h3>
+    <div class="metric-row">
+      <div><span class="big">{{ '%.1f'|format(st.ap50 * 100) }}%</span><span class="muted small">AP@0.5</span></div>
+      {% if st.at_threshold %}
+      <div><span class="mid">{{ '%.1f'|format(st.at_threshold.precision * 100) }}%</span><span class="muted small">Precision</span></div>
+      <div><span class="mid">{{ '%.1f'|format(st.at_threshold.recall * 100) }}%</span><span class="muted small">Recall</span></div>
+      {% endif %}
+    </div>
+    <p class="muted small">{% if st.at_threshold %}{{ st.at_threshold.tp }} correct, {{ st.at_threshold.fp }} false alarms at threshold {{ '%.2f'|format(st.at_threshold.threshold) }} · {% endif %}a box is correct at IoU ≥ 0.5 · front, side, rear and three-quarter views</p>
+  </article>
+  {% endif %}
+  {% for key, label in [('single', 'UIUC single-scale · 200 cars'), ('scale', 'UIUC multi-scale · 139 cars')] %}
+  {% set m = cnn_metrics[key] %}
+  <article class="panel metric-card">
+    <h3>{{ label }}</h3>
+    <div class="metric-row">
+      <div><span class="big">{{ '%.1f'|format(m.f1 * 100) }}%</span><span class="muted small">F1</span></div>
+      <div><span class="mid">{{ '%.1f'|format(m.precision * 100) }}%</span><span class="muted small">Precision</span></div>
+      <div><span class="mid">{{ '%.1f'|format(m.recall * 100) }}%</span><span class="muted small">Recall</span></div>
+    </div>
+    <p class="muted small">{{ m.tp }} correct, {{ m.fp }} false alarm{{ '' if m.fp == 1 else 's' }} at threshold {{ '%.2f'|format(m.threshold) }} · recall at equal error rate {{ '%.1f'|format(m.eer.recall * 100) }}% · {{ m.latency_ms_mean|round|int }} ms per image</p>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
 
-    <main>
+{% if metrics %}
+<h2 class="section-title">Classic HOG baseline · UIUC protocol</h2>
+<div class="cards">
+  {% for key, label in [('single', 'Single-scale test · 170 images, 200 cars'), ('scale', 'Multi-scale test · 108 images, 139 cars')] %}
+  {% set m = metrics[key] %}
+  <article class="panel metric-card">
+    <h3>{{ label }}</h3>
+    <div class="metric-row">
+      <div><span class="big">{{ '%.1f'|format(m.f1 * 100) }}%</span><span class="muted small">F1</span></div>
+      <div><span class="mid">{{ '%.1f'|format(m.precision * 100) }}%</span><span class="muted small">Precision</span></div>
+      <div><span class="mid">{{ '%.1f'|format(m.recall * 100) }}%</span><span class="muted small">Recall</span></div>
+    </div>
+    <p class="muted small">{{ m.tp }} correct, {{ m.fp }} false alarms at threshold {{ m.threshold }} ·
+      recall at equal error rate {{ '%.1f'|format(m.eer.recall * 100) }}% · AP {{ '%.3f'|format(m.average_precision) }} ·
+      {{ m.latency_ms_mean|round|int }} ms per image</p>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
 
-      <!-- ── Summary Stats ───────────────────────────────────────── -->
-      <div class="stats-grid">
-        <div class="stat-box">
-          <span class="stat-num">{{ total }}</span>
-          <span class="stat-lbl">Total Predictions</span>
-        </div>
-        <div class="stat-box car">
-          <span class="stat-num">{{ cars }}</span>
-          <span class="stat-lbl">Cars Detected</span>
-        </div>
-        <div class="stat-box nocar">
-          <span class="stat-num">{{ non_cars }}</span>
-          <span class="stat-lbl">No Car</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-num">
-            {% if total > 0 %}
-              {{ "%.1f"|format(cars / total * 100) }}%
-            {% else %}
-              —
-            {% endif %}
-          </span>
-          <span class="stat-lbl">Car Detection Rate</span>
-        </div>
-      </div>
+{% if meta %}
+<h2 class="section-title">Model cards</h2>
+{% if cnn_meta %}
+<div class="panel" style="margin-bottom:16px">
+  <h3>Any-angle CNN</h3>
+  <dl class="kv grid-kv">
+    <div><dt>Architecture</dt><dd>{{ cnn_meta.model_family }} (COCO-pretrained)</dd></div>
+    <div><dt>Fine-tuned on</dt><dd>Stanford Cars + UIUC synthetic scenes</dd></div>
+    <div><dt>Iterations</dt><dd>{{ cnn_meta.iterations }} × batch {{ cnn_meta.batch_size }} ({{ cnn_meta.train_minutes }} min, CPU)</dd></div>
+    {% set vb = cnn_meta.validation.baseline_coco %}{% set vf = cnn_meta.validation.fine_tuned %}
+    <div><dt>Val AP@0.5 · Stanford</dt><dd>{{ vb.stanford.ap50 }} → {{ vf.stanford.ap50 }}</dd></div>
+    <div><dt>Val AP@0.5 · UIUC scenes</dt><dd>{{ vb.uiuc_scenes.ap50 }} → {{ vf.uiuc_scenes.ap50 }}</dd></div>
+    <div><dt>Threshold</dt><dd>{{ '%.2f'|format(vf.combined.best_threshold) }} (best F1 on both validation sets)</dd></div>
+    <div><dt>Trained</dt><dd>{{ cnn_meta.trained_at }}</dd></div>
+    {% if cnn_meta.mlflow_run_id %}<div><dt>MLflow run</dt><dd><code>{{ cnn_meta.mlflow_run_id[:12] }}</code></dd></div>{% endif %}
+  </dl>
+</div>
+{% endif %}
+<div class="panel">
+  <h3>Classic HOG baseline</h3>
+  <dl class="kv grid-kv">
+    <div><dt>Classifier</dt><dd>{{ meta.model_family }} {{ meta.model_params }}</dd></div>
+    <div><dt>Features</dt><dd>HOG, {{ meta.n_features }} dims (100×40 window)</dd></div>
+    <div><dt>CV {{ meta.cv_metric }}</dt><dd>{{ meta.cv_score }}</dd></div>
+    <div><dt>Validation ROC-AUC</dt><dd>{{ meta.validation.val_roc_auc }}</dd></div>
+    <div><dt>Hard negatives mined</dt><dd>{{ meta.n_hard_negatives }}</dd></div>
+    <div><dt>Trained</dt><dd>{{ meta.trained_at }}</dd></div>
+    {% if meta.mlflow_run_id %}<div><dt>MLflow run</dt><dd><code>{{ meta.mlflow_run_id[:12] }}</code></dd></div>{% endif %}
+  </dl>
+</div>
+{% endif %}
 
-      <!-- ── Prediction History Table ────────────────────────────── -->
-      <div class="card">
-        <h2>Recent Predictions <small>(last 50)</small></h2>
+<h2 class="section-title">Live usage</h2>
+<div class="cards stats">
+  <div class="panel stat"><span class="big">{{ stats.requests }}</span><span class="muted small">Requests</span></div>
+  <div class="panel stat"><span class="big">{{ stats.cars_found }}</span><span class="muted small">Cars found</span></div>
+  <div class="panel stat"><span class="big">{{ stats.images_with_cars }}</span><span class="muted small">Images with a car</span></div>
+  <div class="panel stat"><span class="big">{{ stats.avg_latency_ms if stats.avg_latency_ms is not none else '—' }}</span><span class="muted small">Avg latency (ms)</span></div>
+</div>
 
-        {% if predictions %}
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Filename</th>
-                <th>Result</th>
-                <th>Confidence</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for p in predictions %}
-              <tr class="{{ 'row-car' if p.result == 'Car Detected' else 'row-nocar' }}">
-                <td>{{ p.id }}</td>
-                <td>{{ p.filename }}</td>
-                <td>
-                  <span class="badge {{ 'badge-car' if p.result == 'Car Detected' else 'badge-nocar' }}">
-                    {{ p.result }}
-                  </span>
-                </td>
-                <td>{{ "%.1f"|format(p.confidence) }}%</td>
-                <td>{{ p.timestamp.strftime('%Y-%m-%d %H:%M:%S') if p.timestamp else '—' }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        {% else %}
-        <p class="empty-msg">No predictions yet. <a href="/">Upload an image</a> to get started.</p>
-        {% endif %}
-      </div>
-
-    </main>
+<div class="panel">
+  <h3>Recent requests</h3>
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Time (UTC)</th><th>File</th><th>Model</th><th>Source</th><th>Cars</th><th>Top prob.</th><th>Size</th><th>Latency</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="nowrap">{{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '—' }}</td>
+          <td class="ellipsis" title="{{ r.filename }}">{{ r.filename }}</td>
+          <td><span class="badge">{{ (r.model or 'hog')|upper }}</span></td>
+          <td><span class="badge">{{ r.source }}</span></td>
+          <td><span class="badge {{ 'badge-ok' if r.n_cars else '' }}">{{ r.n_cars }}</span></td>
+          <td>{{ '%.2f'|format(r.max_score) if r.n_cars else '—' }}</td>
+          <td class="nowrap">{{ r.width }}×{{ r.height }}</td>
+          <td class="nowrap">{{ r.latency_ms|round|int }} ms</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-</body>
-</html>
+  {% else %}
+  <p class="muted">No requests yet. <a href="/">Run a detection</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}

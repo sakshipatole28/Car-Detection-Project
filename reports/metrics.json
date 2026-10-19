@@ -1,0 +1,60 @@
+{
+  "single": {
+    "n_objects": 200,
+    "tp": 194,
+    "fp": 2,
+    "recall": 0.97,
+    "precision": 0.9898,
+    "f1": 0.9798,
+    "threshold": 0.5,
+    "eer": {
+      "threshold": 0.37,
+      "recall": 0.975,
+      "precision": 0.975
+    },
+    "average_precision": 0.984,
+    "best_f1": 0.9823,
+    "best_f1_threshold": 0.51,
+    "n_images": 170,
+    "latency_ms_mean": 98.7,
+    "latency_ms_p95": 223.8
+  },
+  "scale": {
+    "n_objects": 139,
+    "tp": 137,
+    "fp": 8,
+    "recall": 0.9856,
+    "precision": 0.9448,
+    "f1": 0.9648,
+    "threshold": 0.5,
+    "eer": {
+      "threshold": 0.61,
+      "recall": 0.964,
+      "precision": 0.964
+    },
+    "average_precision": 0.9707,
+    "best_f1": 0.9751,
+    "best_f1_threshold": 0.53,
+    "n_images": 108,
+    "latency_ms_mean": 1071.6,
+    "latency_ms_p95": 1759.8
+  },
+  "validation": {
+    "val_accuracy": 0.9857,
+    "val_precision": 1.0,
+    "val_recall": 0.9727,
+    "val_f1": 0.9862,
+    "val_roc_auc": 0.9996,
+    "val_average_precision": 0.9997
+  },
+  "model": {
+    "model_family": "logreg",
+    "model_params": {
+      "C": 0.01
+    },
+    "cv_score": 0.9999,
+    "trained_at": "2026-10-19T16:26:11+00:00",
+    "n_hard_negatives": 3000,
+    "mlflow_run_id": "44bf7bbd31654469a22230664ca37313"
+  }
+}

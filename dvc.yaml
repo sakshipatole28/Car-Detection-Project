@@ -1,38 +1,100 @@
-# dvc.yaml — DVC Pipeline for Car Detection Project
-# ─────────────────────────────────────────────────────────────────────────────
-# This defines the reproducible ML pipeline.
-# Run with: dvc repro
-# ─────────────────────────────────────────────────────────────────────────────
-
+# Reproducible pipeline:  dvc repro   (dvc dag to visualise, dvc metrics show / dvc plots show)
 stages:
-
-  # Stage 1: Train the model
   train:
-    cmd: python app/train.py
+    cmd: python -m cardet.train
     deps:
-      - app/train.py
       - CarData/TrainImages
-    outs:
-      - app/model/car_model.pkl
+      - cardet/train.py
+      - cardet/features.py
+      - cardet/data.py
+      - cardet/detector.py
+      - cardet/config.py
     params:
-      - params.yaml:
-          - train.models
-          - train.folds
-          - train.session_id
-          - features.img_width
-          - features.img_height
-
-  # Stage 2: Evaluate on test set
-  evaluate:
-    cmd: python app/evaluate.py
-    deps:
-      - app/evaluate.py
-      - app/predict.py
-      - app/model/car_model.pkl
-      - CarData/TestImages
-      - CarData/trueLocations.txt
+      - data.val_size
+      - data.seed
+      - features
+      - augment
+      - hard_negative_mining
+      - train
+      - detect                 # detection defaults are baked into the model bundle
+    outs:
+      - models/car_detector.joblib:
+          cache: false         # small (~40 KB); committed so the API/Docker image work from git
     metrics:
-      - metrics.json:
+      - reports/train_metrics.json:
+          cache: false
+    plots:
+      - reports/validation.png:
+          cache: false
+
+  evaluate:
+    cmd: python -m cardet.evaluate --gate
+    deps:
+      - models/car_detector.joblib
+      - cardet/evaluate.py
+      - cardet/metrics.py
+      - CarData/TestImages
+      - CarData/TestImages_Scale
+      - CarData/trueLocations.txt
+      - CarData/trueLocations_Scale.txt
+    params:
+      - quality_gate
+    metrics:
+      - reports/metrics.json:
+          cache: false
+    plots:
+      - reports/pr_curve.png:
           cache: false
     outs:
-      - CarData/foundLocations.txt
+      - reports/foundLocations.txt:
+          cache: false
+      - reports/foundLocations_Scale.txt:
+          cache: false
+      - reports/examples:
+          cache: false
+
+  train_cnn:
+    cmd: python -m cardet.train_cnn
+    deps:
+      - CarData/cardata.zip     # Stanford Cars (YOLO format), tracked by CarData/cardata.zip.dvc
+      - CarData/TrainImages
+      - cardet/train_cnn.py
+      - cardet/cnn.py
+      - cardet/cnn_data.py
+    params:
+      - data.seed
+      - cnn
+    outs:
+      - models/cnn_detector.pt:
+          cache: false          # ~7 MB fp16; committed so the app works from git
+    metrics:
+      - reports/cnn_train_metrics.json:
+          cache: false
+
+  evaluate_cnn:
+    cmd: python -m cardet.evaluate --model cnn --gate
+    deps:
+      - models/cnn_detector.pt
+      - CarData/cardata.zip
+      - cardet/evaluate.py
+      - cardet/metrics.py
+      - CarData/TestImages
+      - CarData/TestImages_Scale
+      - CarData/trueLocations.txt
+      - CarData/trueLocations_Scale.txt
+    params:
+      - quality_gate
+      - cnn.test_images
+    metrics:
+      - reports/cnn/metrics.json:
+          cache: false
+    plots:
+      - reports/cnn/pr_curve.png:
+          cache: false
+    outs:
+      - reports/cnn/foundLocations.txt:
+          cache: false
+      - reports/cnn/foundLocations_Scale.txt:
+          cache: false
+      - reports/cnn/examples:
+          cache: false
