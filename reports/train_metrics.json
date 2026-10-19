@@ -1,0 +1,11 @@
+{
+  "cv_score": 0.9999,
+  "model_family": "logreg",
+  "n_hard_negatives": 3000,
+  "val_accuracy": 0.9857,
+  "val_precision": 1.0,
+  "val_recall": 0.9727,
+  "val_f1": 0.9862,
+  "val_roc_auc": 0.9996,
+  "val_average_precision": 0.9997
+}

@@ -1,0 +1,13 @@
+**
+!requirements.txt
+!cardet/*.py
+!app/__init__.py
+!app/main.py
+!app/db.py
+!app/templates/**
+!app/static/**
+!models/car_detector.joblib
+!models/cnn_detector.pt
+!reports/metrics.json
+!reports/cnn/metrics.json
+!params.yaml

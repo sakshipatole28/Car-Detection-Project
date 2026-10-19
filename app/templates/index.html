@@ -1,62 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Car Detection — Exp 11</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}"/>
-</head>
-<body>
-  <div class="container">
+{% extends "base.html" %}
+{% block main_class %}wrap-wide{% endblock %}
+{% block content %}
+<section class="hero hero-center">
+  <span class="eyebrow"><span class="dot"></span> Any angle · CPU only</span>
+  <h1>Spot every car in the frame</h1>
+  <p class="muted">Drop a photo of a street or a car — front, side, rear or three-quarter view.
+    Each car gets a box and its probability.</p>
+</section>
 
-    <header>
-      <h1>🚗 Car Detection</h1>
-      <p class="subtitle">UIUC Dataset · AutoML · BentoML · MLflow · DVC</p>
-      <nav>
-        <a href="/">Upload</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/health">Health</a>
-        <a href="/docs" target="_blank">API Docs</a>
-      </nav>
-    </header>
+{% if not model_ready %}
+<div class="alert">No model is loaded. Run <code>make train</code> and restart the server.</div>
+{% endif %}
 
-    <main>
-      <div class="card">
-        <h2>Upload an Image</h2>
-        <p>Supported formats: <strong>.pgm, .png, .jpg, .jpeg</strong></p>
-        <p>Model detects whether the image contains a <strong>car</strong>.</p>
+<input type="file" id="file-input" class="visually-hidden" accept=".pgm,.png,.jpg,.jpeg,.bmp,image/*">
 
-        <form action="/predict" method="post" enctype="multipart/form-data">
-          <div class="upload-area">
-            <input type="file" name="file" id="file-input"
-                   accept=".pgm,.png,.jpg,.jpeg" required/>
-            <label for="file-input" class="upload-label">
-              📁 Choose Image File
-            </label>
-            <span id="file-name">No file chosen</span>
-          </div>
-          <button type="submit" class="btn-primary">Predict →</button>
-        </form>
+<div class="detect-grid">
+  <!-- Left: controls -->
+  <section class="panel controls" aria-label="Controls">
+    {% if models|length > 1 %}
+    <div class="field">
+      <span class="label" id="model-label">Model</span>
+      <div class="segmented" role="radiogroup" aria-labelledby="model-label">
+        {% for m in models %}
+        <button type="button" role="radio" class="seg" data-model="{{ m.name }}" data-threshold="{{ '%.2f'|format(m.threshold) }}"
+                aria-checked="{{ 'true' if m.name == default_model else 'false' }}">{{ m.label }}</button>
+        {% endfor %}
+      </div>
+      <p class="muted small" id="model-hint"></p>
+    </div>
+    {% endif %}
+
+    <label for="file-input" class="btn-race">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+      Upload image
+    </label>
+    <p class="muted small center">PGM, PNG, JPEG, BMP · max 8&nbsp;MB</p>
+
+    <div class="field">
+      <div class="field-head">
+        <label for="threshold">Threshold</label>
+        <output id="threshold-out" for="threshold">{{ '%.2f'|format((models|selectattr('name', 'equalto', default_model)|first).threshold if models else 0.5) }}</output>
+      </div>
+      <input type="range" id="threshold" min="0.05" max="0.99" step="0.01" value="{{ '%.2f'|format((models|selectattr('name', 'equalto', default_model)|first).threshold if models else 0.5) }}">
+      <p class="muted small">Lower finds more cars but also more false alarms. The result updates as you slide.</p>
+    </div>
+
+    {% if samples %}
+    <div class="field">
+      <span class="label">Test images</span>
+      <div class="samples">
+        {% for s in samples %}
+        <button type="button" class="sample" style="--i: {{ loop.index0 }}" data-src="{{ url_for('static', path='samples/' ~ s) }}" data-name="{{ s }}" aria-label="Run sample {{ s }}">
+          <img src="{{ url_for('static', path='samples/' ~ s) }}" alt="" loading="lazy">
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- Centre: the image -->
+  <section class="stage-col" aria-live="polite">
+    <div class="stage" id="stage">
+      <label for="file-input" class="stage-empty" id="empty">
+        <span class="track" aria-hidden="true"></span>
+        <span class="pulse" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+        </span>
+        <strong>Drop a street image here</strong>
+        <span class="muted small">or click to browse, or pick a test image</span>
+      </label>
+
+      <div class="stage-loading" id="loading" hidden>
+        <img id="preview" alt="">
+        <span class="scanline" aria-hidden="true"></span>
+        <span class="chip chip-scan"><span class="dot"></span> <span id="scan-text">Scanning…</span></span>
       </div>
 
-      <div class="card info-card">
-        <h3>How It Works</h3>
-        <ol>
-          <li><strong>AutoML</strong> — PyCaret trains LR, DT, RF on HOG features</li>
-          <li><strong>BentoML</strong> — packages and serves the model as a REST API</li>
-          <li><strong>MLflow</strong> — tracks experiments, metrics, and model versions</li>
-          <li><strong>DVC</strong> — versions the dataset and pipeline for reproducibility</li>
-        </ol>
+      <div class="stage-output" id="output" hidden>
+        <canvas id="canvas"></canvas>
+        <span class="chip chip-tl" id="chip-count"><span class="dot"></span> <b>0</b> cars</span>
+        <span class="chip chip-tr" id="chip-time">0 ms</span>
       </div>
-    </main>
 
-  </div>
+      <div class="stage-error" id="error" hidden>
+        <strong>Couldn't run detection</strong>
+        <span id="error-msg"></span>
+        <label for="file-input" class="btn-ghost">Try another image</label>
+      </div>
+    </div>
+  </section>
 
-  <script>
-    document.getElementById("file-input").addEventListener("change", function() {
-      const name = this.files[0] ? this.files[0].name : "No file chosen";
-      document.getElementById("file-name").textContent = name;
-    });
-  </script>
-</body>
-</html>
+  <!-- Right: results -->
+  <section class="panel telemetry" aria-label="Results">
+    <div class="tele-head">
+      <span class="label">Results</span>
+      <span class="muted small" id="r-status">Waiting for an image</span>
+    </div>
+    <div class="counter">
+      <span class="big" id="count">–</span>
+      <span class="muted" id="count-label">cars found</span>
+    </div>
+    <dl class="kv kv-stack">
+      <div><dt>File</dt><dd id="r-file">—</dd></div>
+      <div><dt>Size</dt><dd id="r-size">—</dd></div>
+      <div><dt>Time</dt><dd id="r-latency">—</dd></div>
+      <div><dt>Model</dt><dd id="r-model">—</dd></div>
+    </dl>
+    <ol class="grid-list" id="det-list"></ol>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.CARDET = { defaultModel: {{ default_model|tojson }} };</script>
+<script src="{{ url_for('static', path='app.js') }}" defer></script>
+{% endblock %}

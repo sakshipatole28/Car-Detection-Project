@@ -1,0 +1,118 @@
+{
+  "single": {
+    "n_objects": 200,
+    "tp": 173,
+    "fp": 1,
+    "recall": 0.865,
+    "precision": 0.9943,
+    "f1": 0.9251,
+    "threshold": 0.839,
+    "eer": {
+      "threshold": 0.53,
+      "recall": 0.96,
+      "precision": 0.9552
+    },
+    "average_precision": 0.9936,
+    "best_f1": 0.9628,
+    "best_f1_threshold": 0.48,
+    "n_images": 170,
+    "latency_ms_mean": 90.9,
+    "latency_ms_p95": 104.3
+  },
+  "scale": {
+    "n_objects": 139,
+    "tp": 126,
+    "fp": 4,
+    "recall": 0.9065,
+    "precision": 0.9692,
+    "f1": 0.9368,
+    "threshold": 0.839,
+    "eer": {
+      "threshold": 0.52,
+      "recall": 0.9712,
+      "precision": 0.9712
+    },
+    "average_precision": 0.9871,
+    "best_f1": 0.9749,
+    "best_f1_threshold": 0.39,
+    "n_images": 108,
+    "latency_ms_mean": 90.1,
+    "latency_ms_p95": 101.2
+  },
+  "validation": {
+    "baseline_coco": {
+      "stanford": {
+        "ap50": 0.8236,
+        "best_f1": 0.8159,
+        "precision_at_best": 0.8351,
+        "recall_at_best": 0.7975,
+        "best_threshold": 0.718,
+        "n_gt": 400
+      },
+      "uiuc_scenes": {
+        "ap50": 0.8057,
+        "best_f1": 0.7959,
+        "precision_at_best": 0.8432,
+        "recall_at_best": 0.7536,
+        "best_threshold": 0.361,
+        "n_gt": 207
+      },
+      "combined": {
+        "ap50": 0.8089,
+        "best_f1": 0.8052,
+        "precision_at_best": 0.7968,
+        "recall_at_best": 0.8138,
+        "best_threshold": 0.404,
+        "n_gt": 607
+      }
+    },
+    "fine_tuned": {
+      "stanford": {
+        "ap50": 1.0,
+        "best_f1": 0.9975,
+        "precision_at_best": 0.995,
+        "recall_at_best": 1.0,
+        "best_threshold": 0.93,
+        "n_gt": 400
+      },
+      "uiuc_scenes": {
+        "ap50": 0.9877,
+        "best_f1": 0.9604,
+        "precision_at_best": 0.9848,
+        "recall_at_best": 0.9372,
+        "best_threshold": 0.839,
+        "n_gt": 207
+      },
+      "combined": {
+        "ap50": 0.9972,
+        "best_f1": 0.9851,
+        "precision_at_best": 0.9917,
+        "recall_at_best": 0.9786,
+        "best_threshold": 0.839,
+        "n_gt": 607
+      }
+    }
+  },
+  "stanford_test": {
+    "ap50": 0.9986,
+    "best_f1": 0.9957,
+    "precision_at_best": 0.9963,
+    "recall_at_best": 0.9951,
+    "best_threshold": 0.96,
+    "n_gt": 1618,
+    "at_threshold": {
+      "threshold": 0.839,
+      "tp": 1614,
+      "fp": 15,
+      "precision": 0.9908,
+      "recall": 0.9975,
+      "f1": 0.9941
+    }
+  },
+  "model": {
+    "model_family": "ssdlite320_mobilenet_v3_large",
+    "trained_at": "2026-10-19T15:24:42+00:00",
+    "iterations": 600,
+    "mlflow_run_id": "9dfcba7228c94539ab6b76fce9674932"
+  }
+}
