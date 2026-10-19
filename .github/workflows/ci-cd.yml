@@ -118,7 +118,7 @@ jobs:
       - run: python -m cardet.bento_export && bentoml build
         env:
           BENTOML_DO_NOT_TRACK: "true"
-      - run: bentoml export car_detector_service:latest car_detector_service.bento
+      - run: bentoml export car_detector_service:latest "$PWD/car_detector_service.bento"
       - uses: actions/upload-artifact@v4
         with:
           name: bento
