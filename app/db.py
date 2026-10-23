@@ -15,6 +15,7 @@ from sqlalchemy import (
     select,
     text,
 )
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 
@@ -62,17 +63,30 @@ class Database:
         kwargs = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {}
         self.engine = create_engine(url, **kwargs)
         self.Session = sessionmaker(self.engine, expire_on_commit=False)
-        Base.metadata.create_all(self.engine)
-        self._migrate()
+        self._create_schema()
 
-    def _migrate(self) -> None:
-        """Add columns introduced after a database was first created."""
+    def _create_schema(self) -> None:
+        """Create tables and apply migrations, tolerating concurrent workers.
+
+        Several server workers start at once against the same fresh database;
+        whichever loses the race sees "already exists" / "duplicate column",
+        which only means another worker finished the same step first.
+        """
+        try:
+            Base.metadata.create_all(self.engine)
+        except OperationalError as e:
+            if "already exists" not in str(e).lower():
+                raise
         cols = {c["name"] for c in inspect(self.engine).get_columns("detections")}
         if "model" not in cols:
-            with self.engine.begin() as conn:
-                conn.execute(
-                    text("ALTER TABLE detections ADD COLUMN model VARCHAR(8) DEFAULT 'hog'")
-                )
+            try:
+                with self.engine.begin() as conn:
+                    conn.execute(
+                        text("ALTER TABLE detections ADD COLUMN model VARCHAR(8) DEFAULT 'hog'")
+                    )
+            except OperationalError as e:
+                if "duplicate column" not in str(e).lower():
+                    raise
 
     def add(self, **fields) -> DetectionLog:
         with self.Session.begin() as s:
